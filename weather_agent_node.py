@@ -86,13 +86,22 @@ class GlobalEventPlannerAgent:
         evaluated_reports: List[Dict[str, Any]] = []
         shortlisted_venues: List[str] = []
 
+    
         for city in self.target_cities:
-            print(lambda: f"   -> Invoking tool: fetch_city_weather_tool for '{city}'...")()
+            print(f"   -> Invoking tool: fetch_city_weather_tool for '{city}'...")
             report = fetch_city_weather_tool(city)
             evaluated_reports.append(report)
             
             if report.get("outdoor_event_suitable"):
                 shortlisted_venues.append(report["city"])
+
+        # for city in self.target_cities:
+        #     print(lambda: f"   -> Invoking tool: fetch_city_weather_tool for '{city}'...")()
+        #     report = fetch_city_weather_tool(city)
+        #     evaluated_reports.append(report)
+            
+        #     if report.get("outdoor_event_suitable"):
+        #         shortlisted_venues.append(report["city"])
 
         return {
             "status": "success",
@@ -110,7 +119,7 @@ if __name__ == "__main__":
     
     agent = GlobalEventPlannerAgent(target_cities=global_hubs)
     result_payload = agent.execute_workflow()
-    
+
     # Pretty-print final agent payload response
     import json
     print("\n📦 === Final Agent Execution Output Payload ===")
