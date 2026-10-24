@@ -1,70 +1,120 @@
 import streamlit as st
-import json
 import pandas as pd
-from weather_agent_node import fetch_city_weather_tool, GlobalEventPlannerAgent
+from weather_agent_node import GlobalEventPlannerAgent
 
-# Streamlit Page Config
+# Page Config
 st.set_page_config(
     page_title="Global Outdoor Event Planner Agent",
     page_icon="🌍",
     layout="wide"
 )
 
-st.title("🌍 Global Outdoor Event Planner Agent")
-st.caption("AI Agent Tooling & Real-time Weather Telemetry Evaluation for Outdoor Events")
+# Sidebar Options & Theme Toggle
+st.sidebar.title("⚙️ Dashboard Controls")
+theme = st.sidebar.radio("🎨 Select App Theme Mode:", ["Light Mode ☀️", "Dark Mode 🌙"])
 
+# Robust Theme Injection Styles ensuring explicit text visibility
+if theme == "Dark Mode 🌙":
+    st.markdown("""
+        <style>
+        .stApp { 
+            background-color: #0E1117 !important; 
+            color: #FAFAFA !important; 
+        }
+        p, span, label, div, h1, h2, h3, h4, h5, h6 { 
+            color: #FAFAFA !important; 
+        }
+        .stMetric {
+            background-color: #1E222D !important;
+            padding: 15px;
+            border-radius: 10px;
+            border: 1px solid #313745;
+        }
+        </style>
+    """, unsafe_allow_html=True)
+else:
+    st.markdown("""
+        <style>
+        .stApp { 
+            background-color: #FFFFFF !important; 
+            color: #111111 !important; 
+        }
+        p, span, label, div, h1, h2, h3, h4, h5, h6 { 
+            color: #111111 !important; 
+        }
+        .stMetric {
+            background-color: #F8F9FA !important;
+            padding: 15px;
+            border-radius: 10px;
+            border: 1px solid #E9ECEF;
+        }
+        </style>
+    """, unsafe_allow_html=True)
+
+# Main Title & Contributor Header
+st.title("🌍 Global Outdoor Event Planner Agent")
+st.caption("AI Agent Tooling with Real-Time Meteorological & Air Quality (AQI) Telemetry Analysis")
+st.markdown("👨‍💻 **Contributor:** **Sheetal G.** | *Enterprise AI & Agentic Architect*")
 st.markdown("---")
 
-# Sidebar Controls
-st.sidebar.header("🎯 Event Parameters & City Selector")
+# City Selector Sidebar
+st.sidebar.subheader("🎯 Location Parameters")
 selected_cities = st.sidebar.multiselect(
-    "Select Cities to Analyze:",
+    "Select Target Event Cities:",
     options=[
-        "Tokyo", "Bengaluru", "San Francisco", "London", "Barcelona",
+        "Bengaluru", "Tokyo", "Barcelona", "San Francisco", "London", 
         "Sydney", "Singapore", "New York", "Paris", "Berlin", "Dubai"
     ],
     default=["Bengaluru", "Tokyo", "Barcelona", "San Francisco"]
 )
 
-custom_city = st.sidebar.text_input("...or add a custom city on the fly:")
+custom_city = st.sidebar.text_input("Add a custom city on the fly:")
 if custom_city and custom_city not in selected_cities:
     selected_cities.append(custom_city)
 
-# Run Agent Button
-if st.button("🚀 Run Weather Agent Check", type="primary"):
+# Run Agent Workflow
+if st.button("🚀 Execute Weather & AQI Agent Check", type="primary"):
     if not selected_cities:
-        st.warning("Please select at least one city.")
+        st.warning("Please select at least one city to analyze.")
     else:
-        with st.spinner("🤖 Agent executing tool calls across global hubs..."):
+        with st.spinner("🤖 Agent fetching real-time weather & AQI telemetry across global hubs..."):
             agent = GlobalEventPlannerAgent(target_cities=selected_cities)
             result = agent.execute_workflow()
 
-        st.subheader("📌 Agent Recommendation Summary")
+        st.subheader("📌 Decision Summary")
         col1, col2, col3 = st.columns(3)
+        
         col1.metric("Cities Analyzed", result["total_analyzed"])
-        col2.metric("Shortlisted Venues", result["shortlisted_count"])
+        col2.metric("Greenlit Venues", result["shortlisted_count"])
         col3.metric("Pass Rate", f"{(result['shortlisted_count']/result['total_analyzed'])*100:.0f}%")
 
         if result["top_candidates"]:
-            st.success(f"✅ **Recommended Host Cities:** {', '.join(result['top_candidates'])}")
+            st.success(f"✅ **Recommended Outdoor Event Locations:** {', '.join(result['top_candidates'])}")
         else:
-            st.error("❌ No cities currently meet the outdoor event criteria.")
+            st.warning("⚠️ No cities currently pass all outdoor weather and AQI standards. Review indoor backup options below.")
 
         st.markdown("---")
-        st.subheader("📊 Detailed Telemetry Breakdown")
+        st.subheader("📊 Detailed Telemetry, Air Quality & Venue Recommendations")
         
-        # Convert Telemetry to DataFrame for clean interactive table
-        df = pd.DataFrame(result["detailed_telemetry"])
-        
-        # Re-order and rename columns
-        if not df.empty and "error" not in df.columns:
-            st.dataframe(
-                df[[
-                    "city", "temperature_celsius", "precipitation_mm", 
-                    "wind_speed_kmh", "condition", "outdoor_event_suitable", "recommendation_reason"
-                ]],
-                use_container_width=True
-            )
-        
-        with st.expander("🔍 View Raw Agent JSON Output Payload"):
+        for item in result["detailed_telemetry"]:
+            if "error" in item:
+                st.error(f"❌ {item['city']}: {item['error']}")
+                continue
+
+            status_icon = "✅ OUTDOOR APPROVED" if item["outdoor_event_suitable"] else "❌ OUTDOOR FLAGGED"
+            
+            with st.expander(f"{status_icon} — {item['city']}", expanded=True):
+                c1, c2, c3, c4 = st.columns(4)
+                c1.metric("Temperature", f"{item['temperature_celsius']} °C")
+                c2.metric("Precipitation", f"{item['precipitation_mm']} mm")
+                c3.metric("Wind Speed", f"{item['wind_speed_kmh']} km/h")
+                c4.metric("US AQI (PM2.5)", f"{item['us_aqi']} AQI ({item['pm2_5']} µg/m³)")
+
+                st.markdown(f"**Condition:** `{item['condition']}`")
+                st.markdown(f"**Agent Diagnostics:** {item['recommendation_reason']}")
+                
+                if not item["outdoor_event_suitable"]:
+                    st.info(f"🏛️ **Venue Backup Suggestion:** {item['venue_backup_suggestion']}")
+
+        with st.expander("🔍 View Raw Agent Output Payload"):
             st.json(result)
