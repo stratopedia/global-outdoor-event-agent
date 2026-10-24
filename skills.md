@@ -2,7 +2,6 @@
 
 This document details the functional tools and skills integrated into the Global Outdoor Event Planner Agent ecosystem.
 
----
 
 ## 🧬 Existing Skills
 

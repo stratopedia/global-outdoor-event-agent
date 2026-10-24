@@ -77,3 +77,9 @@ python weather_agent_node.py
 ## 📜 License
 
 MIT License. Open for community contributions!
+
+## Developer
+
+Sheetal G
+
+https://linkedin.com/in/techsheetal
